@@ -12,7 +12,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%', // Make sure it takes full width
+    backgroundColor: '#f5f5f5',
   },
 });
