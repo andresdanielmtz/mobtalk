@@ -1,11 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, FlatList, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
-import { TextInput, Surface, Text, useTheme, Avatar } from 'react-native-paper';
-import { supabase } from '../constants/supabaseConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import React, { useEffect, useState, useRef } from "react";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  SafeAreaView,
+} from "react-native";
+import { Surface, Text, useTheme, Avatar } from "react-native-paper";
+import { supabase } from "../constants/supabaseConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { TextInput as PaperTextInput } from "react-native-paper";
 
 interface Message {
   id: string;
@@ -16,7 +23,7 @@ interface Message {
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const theme = useTheme();
@@ -26,15 +33,15 @@ export default function Chat() {
   useEffect(() => {
     const initializeUserId = async () => {
       try {
-        let storedUserId = await AsyncStorage.getItem('chat_user_id');
+        let storedUserId = await AsyncStorage.getItem("chat_user_id");
         if (!storedUserId) {
           storedUserId = uuidv4().slice(0, 8);
-          await AsyncStorage.setItem('chat_user_id', storedUserId);
+          await AsyncStorage.setItem("chat_user_id", storedUserId);
         }
         setUserId(storedUserId);
         setIsLoading(false);
       } catch (error) {
-        console.error('Error initializing user ID:', error);
+        console.error("Error initializing user ID:", error);
         setIsLoading(false);
       }
     };
@@ -45,75 +52,78 @@ export default function Chat() {
   const fetchMessages = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching messages...');
+      console.log("Fetching messages...");
       const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('createdat', { ascending: true });
-      
+        .from("messages")
+        .select("*")
+        .order("createdat", { ascending: true });
+
       if (error) {
-        console.error('Error fetching messages:', error);
+        console.error("Error fetching messages:", error);
       } else {
-        console.log('Fetched messages:', data);
+        console.log("Fetched messages:", data);
         setMessages(data || []);
       }
     } catch (error) {
-      console.error('Error in fetchMessages:', error);
+      console.error("Error in fetchMessages:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Set up real-time subscription
+  // Real time subscription : )
   useEffect(() => {
     if (!userId) return;
 
     fetchMessages();
 
-    // Clean up previous subscription if it exists
     if (channelRef.current) {
-      console.log('Cleaning up previous subscription');
+      console.log("Cleaning up previous subscription");
       channelRef.current.unsubscribe();
     }
 
-    // Set up new subscription
-    console.log('Setting up new subscription');
+    console.log("Setting up new subscription");
     const channel = supabase
-      .channel('messages-channel')
+      .channel("messages-channel")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
+          event: "*",
+          schema: "public",
+          table: "messages",
         },
         (payload) => {
-          console.log('Received real-time update:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            setMessages((currentMessages) => [...currentMessages, payload.new as Message]);
-          } else if (payload.eventType === 'DELETE') {
-            setMessages((currentMessages) => 
-              currentMessages.filter(message => message.id !== payload.old.id)
-            );
-          } else if (payload.eventType === 'UPDATE') {
+          console.log("Received real-time update:", payload);
+
+          if (payload.eventType === "INSERT") {
+            setMessages((currentMessages) => [
+              ...currentMessages,
+              payload.new as Message,
+            ]);
+          } else if (payload.eventType === "DELETE") {
             setMessages((currentMessages) =>
-              currentMessages.map(message =>
-                message.id === payload.new.id ? { ...message, ...payload.new } : message
+              currentMessages.filter((message) => message.id !== payload.old.id)
+            );
+          } else if (payload.eventType === "UPDATE") {
+            setMessages((currentMessages) =>
+              currentMessages.map((message) =>
+                message.id === payload.new.id
+                  ? { ...message, ...payload.new }
+                  : message
               )
             );
           }
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
+        console.log("Subscription status:", status);
       });
 
     channelRef.current = channel;
 
     // Cleanup function
     return () => {
-      console.log('Cleaning up subscription');
+      console.log("Cleaning up subscription");
       channel.unsubscribe();
     };
   }, [userId]);
@@ -122,30 +132,30 @@ export default function Chat() {
     if (!userId || !newMessage.trim()) return;
 
     try {
-      console.log('Sending message...');
+      console.log("Sending message...");
       const messageToSend = {
         text: newMessage.trim(),
         user_id: userId,
       };
 
       const { data, error } = await supabase
-        .from('messages')
+        .from("messages")
         .insert([messageToSend])
         .select();
 
       if (error) {
-        console.error('Error sending message:', error);
+        console.error("Error sending message:", error);
       } else {
-        console.log('Message sent successfully:', data);
-        setNewMessage('');
+        console.log("Message sent successfully:", data);
+        setNewMessage("");
       }
     } catch (error) {
-      console.error('Error in sendMessage:', error);
+      console.error("Error in sendMessage:", error);
     }
   };
 
   const getInitials = (id: string | null) => {
-    if (!id) return '??';
+    if (!id) return "??";
     return id.slice(0, 2).toUpperCase();
   };
 
@@ -160,7 +170,7 @@ export default function Chat() {
   const renderMessage = ({ item }: { item: Message }) => {
     if (!userId) return null;
     const isCurrentUser = item.user_id === userId;
-  
+
     return (
       <View
         style={[
@@ -182,19 +192,23 @@ export default function Chat() {
               isCurrentUser ? styles.currentUserBubble : styles.otherUserBubble,
             ]}
           >
-            <Text style={[
-              styles.messageText,
-              isCurrentUser ? styles.currentUserText : null
-            ]}>
+            <Text
+              style={[
+                styles.messageText,
+                isCurrentUser ? styles.currentUserText : null,
+              ]}
+            >
               {item.text}
             </Text>
-            <Text style={[
-              styles.timestamp,
-              isCurrentUser ? styles.currentUserTimestamp : null
-            ]}>
+            <Text
+              style={[
+                styles.timestamp,
+                isCurrentUser ? styles.currentUserTimestamp : null,
+              ]}
+            >
               {new Date(item.createdat).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
+                hour: "2-digit",
+                minute: "2-digit",
               })}
             </Text>
           </View>
@@ -202,7 +216,6 @@ export default function Chat() {
       </View>
     );
   };
-  
 
   if (isLoading) {
     return (
@@ -216,9 +229,9 @@ export default function Chat() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Surface style={styles.header} elevation={2}>
-          <Text style={styles.headerText}>Chat Room</Text>
+          <Text style={styles.headerText}>Mobtalk - Chat Room</Text>
         </Surface>
-        
+
         <View style={styles.chatContainer}>
           <FlatList
             ref={flatListRef}
@@ -234,20 +247,23 @@ export default function Chat() {
         </View>
 
         <Surface style={styles.inputContainer} elevation={4}>
-          <TextInput
+          <PaperTextInput
             mode="outlined"
             value={newMessage}
             onChangeText={setNewMessage}
             placeholder="Type a message"
             style={styles.input}
             right={
-              <TextInput.Icon
+              <PaperTextInput.Icon
                 icon="send"
                 onPress={sendMessage}
                 disabled={!newMessage.trim()}
               />
             }
             onSubmitEditing={sendMessage}
+            theme={{
+              roundness: 10, // Adjust the roundness value as needed
+            }}
           />
         </Surface>
       </View>
@@ -258,33 +274,33 @@ export default function Chat() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    width: '100%',
+    width: "100%",
   },
   container: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#f5f5f5',
+    width: "100%",
+    backgroundColor: "#f5f5f5",
   },
   header: {
-    width: '100%',
+    width: "100%",
     padding: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: "#e0e0e0",
   },
   headerText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   chatContainer: {
     flex: 1,
-    width: '100%',
+    width: "100%",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
   },
   messagesList: {
     padding: 16,
@@ -292,62 +308,63 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginVertical: 4,
-    width: '100%',
+    width: "100%",
   },
   messageContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    maxWidth: '80%',
+    flexDirection: "row",
+    alignItems: "flex-end",
+    maxWidth: "80%",
   },
   currentUserMessage: {
-    alignItems: 'flex-end',
-    alignSelf: 'flex-end',
+    alignItems: "flex-end",
+    alignSelf: "flex-end",
   },
   otherUserMessage: {
-    alignItems: 'flex-start',
-    alignSelf: 'flex-start',
+    alignItems: "flex-start",
+    alignSelf: "flex-start",
   },
   messageBubble: {
     padding: 12,
     borderRadius: 20,
     marginBottom: 4,
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
   currentUserBubble: {
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     borderBottomRightRadius: 4,
   },
   otherUserBubble: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   currentUserText: {
-    color: 'white',
+    color: "white",
   },
   timestamp: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginTop: 4,
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
   },
   currentUserTimestamp: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: "rgba(255, 255, 255, 0.7)",
   },
   avatar: {
     marginRight: 8,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
   },
   inputContainer: {
     padding: 16,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: "#e0e0e0",
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
+    margin: 8,
   },
 });
