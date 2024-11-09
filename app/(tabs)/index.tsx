@@ -1,18 +1,18 @@
-import { StyleSheet, View } from 'react-native';
-import Chat from '@/components/Chat';
-
+import { StyleSheet } from "react-native";
+import Chat from "@/components/Chat";
+import { ThemedView } from "@/components/ThemedView";
 export default function HomeScreen() {
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       <Chat />
-    </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%', // Make sure it takes full width
-    backgroundColor: '#f5f5f5',
+    width: "100%", 
+    backgroundColor: "#f5f5f5",
   },
 });
